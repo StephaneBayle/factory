@@ -351,7 +351,7 @@
     <div class="field">
       <label>Clé API Mistral</label>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="password" id="api-key" placeholder="sk-..." autocomplete="off" style="flex:1"/>
+        <input type="password" id="api-key" placeholder="Colle ta clé API Mistral..." autocomplete="off" style="flex:1"/>
         <button onclick="forgetKey()" id="btn-forget" title="Supprimer la clé mémorisée" style="padding:12px 14px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:0.85rem;white-space:nowrap;display:none">🗑 Oublier</button>
       </div>
       <p id="key-hint" style="font-size:0.75rem;color:var(--accent-fr);margin-top:6px;display:none">✓ Clé mémorisée sur cet appareil</p>
@@ -445,8 +445,8 @@
   async function startSession() {
     apiKey = document.getElementById('api-key').value.trim();
     if (!apiKey) { showError('Entre ta clé API Mistral.'); return; }
-    if (!apiKey.startsWith('sk-') && !apiKey.startsWith('ey')) {
-      showError('Format de clé API invalide.'); return;
+    if (apiKey.length < 10) {
+      showError('Clé API trop courte, vérifie la saisie.'); return;
     }
 
     try {
