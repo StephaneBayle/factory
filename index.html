@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Traduction Temps Réel — Conférence</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #2a2a3a;
+      --accent-en: #3b82f6;
+      --accent-fr: #22c55e;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --text-orig: #64748b;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── PANNEAU DE CONFIGURATION ── */
+    #config-panel {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+
+    .config-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .config-card h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .config-card p {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus {
+      border-color: var(--accent-en);
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 12px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .mode-btn.active-en {
+      border-color: var(--accent-en);
+      color: var(--accent-en);
+      background: rgba(59,130,246,0.08);
+    }
+
+    .mode-btn.active-fr {
+      border-color: var(--accent-fr);
+      color: var(--accent-fr);
+      background: rgba(34,197,94,0.08);
+    }
+
+    .btn-start {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent-en);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-start:hover { opacity: 0.85; }
+    .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .warning {
+      font-size: 0.78rem;
+      color: #f59e0b;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      line-height: 1.5;
+    }
+
+    /* ── AFFICHAGE PRINCIPAL ── */
+    #display {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .mode-badge {
+      font-size: 1rem;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-en { background: rgba(59,130,246,0.15); color: var(--accent-en); }
+    .badge-fr { background: rgba(34,197,94,0.15); color: var(--accent-fr); }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s;
+    }
+
+    .status-dot.listening {
+      background: #22c55e;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .btn-stop {
+      padding: 8px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-stop:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* Zone principale */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px;
+      gap: 32px;
+    }
+
+    .translation-block {
+      text-align: center;
+    }
+
+    .translation-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-orig);
+      margin-bottom: 16px;
+    }
+
+    .translation-text {
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--text);
+      min-height: 1.5em;
+      transition: all 0.3s;
+    }
+
+    .translation-text.en { color: var(--accent-en); }
+    .translation-text.fr { color: var(--accent-fr); }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 10%;
+    }
+
+    .original-text {
+      font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+      color: var(--text-orig);
+      font-style: italic;
+      text-align: center;
+      min-height: 1.4em;
+    }
+
+    /* Indicateur traitement */
+    .processing {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      min-height: 24px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent-en);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Historique */
+    .history {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .history-item {
+      font-size: 0.78rem;
+      color: var(--text-orig);
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .history-item span {
+      color: var(--text-dim);
+      margin-right: 8px;
+    }
+
+    /* Erreur */
+    .error-banner {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 200;
+      max-width: 480px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PANNEAU DE CONFIGURATION
+══════════════════════════════════════════ -->
+<div id="config-panel">
+  <div class="config-card">
+    <div>
+      <h1>🎙 Traduction Temps Réel</h1>
+      <p style="margin-top:8px">Transcription et traduction instantanée pour conférence — propulsé par Mistral Voxtral</p>
+    </div>
+
+    <div class="field">
+      <label>Clé API Mistral</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="password" id="api-key" placeholder="sk-..." autocomplete="off" style="flex:1"/>
+        <button onclick="forgetKey()" id="btn-forget" title="Supprimer la clé mémorisée" style="padding:12px 14px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-dim);cursor:pointer;font-size:0.85rem;white-space:nowrap;display:none">🗑 Oublier</button>
+      </div>
+      <p id="key-hint" style="font-size:0.75rem;color:var(--accent-fr);margin-top:6px;display:none">✓ Clé mémorisée sur cet appareil</p>
+    </div>
+
+    <div class="field">
+      <label>Mode de traduction</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active-en" id="btn-en-fr" onclick="selectMode('EN→FR')">
+          🇬🇧 EN → 🇫🇷 FR
+        </button>
+        <button class="mode-btn" id="btn-fr-en" onclick="selectMode('FR→EN')">
+          🇫🇷 FR → 🇬🇧 EN
+        </button>
+      </div>
+    </div>
+
+    <div class="warning">
+      ⚠️ La clé est mémorisée localement dans ce navigateur (localStorage). Elle ne quitte jamais cet appareil. Utilise une clé à budget plafonné et clique 🗑 Oublier après la conférence.
+    </div>
+
+    <button class="btn-start" id="btn-start" onclick="startSession()">
+      ▶ Démarrer la traduction
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     AFFICHAGE PLEIN ÉCRAN
+══════════════════════════════════════════ -->
+<div id="display">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="mode-badge badge-en" id="mode-badge">EN → FR</div>
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-label" id="status-label">En attente...</span>
+    </div>
+    <button class="btn-stop" onclick="stopSession()">⏹ Arrêter</button>
+  </div>
+
+  <div class="main-area">
+    <div class="translation-block">
+      <div class="translation-label" id="translation-label">TRADUCTION EN FRANÇAIS</div>
+      <div class="translation-text fr" id="translation-text">
+        En attente de la parole...
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="original-text" id="original-text">
+      —
+    </div>
+
+    <div class="processing">
+      <div class="spinner" id="spinner"></div>
+      <span id="processing-label"></span>
+    </div>
+  </div>
+
+  <div class="history" id="history"></div>
+</div>
+
+<div class="error-banner" id="error-banner"></div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+  // ── État global ──
+  let apiKey = '';
+  let currentMode = 'EN→FR'; // 'EN→FR' ou 'FR→EN'
+  let mediaRecorder = null;
+  let audioStream = null;
+  let isRecording = false;
+  let audioChunks = [];
+  let processingTimeout = null;
+  let silenceTimer = null;
+  const SILENCE_DELAY = 1800; // ms avant d'envoyer (détection pause naturelle)
+  const CHUNK_INTERVAL = 3000; // ms max entre envois forcés
+
+  // ── Sélection du mode ──
+  function selectMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-en-fr').className = 'mode-btn' + (mode === 'EN→FR' ? ' active-en' : '');
+    document.getElementById('btn-fr-en').className = 'mode-btn' + (mode === 'FR→EN' ? ' active-fr' : '');
+  }
+
+  // ── Démarrage session ──
+  async function startSession() {
+    apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) { showError('Entre ta clé API Mistral.'); return; }
+    if (!apiKey.startsWith('sk-') && !apiKey.startsWith('ey')) {
+      showError('Format de clé API invalide.'); return;
+    }
+
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch (e) {
+      showError('Accès micro refusé. Autorise le micro dans Chrome.');
+      return;
+    }
+
+    // Mémoriser la clé dans localStorage
+    saveKey(apiKey);
+
+    // Basculer vers l'affichage
+    document.getElementById('config-panel').style.display = 'none';
+    document.getElementById('display').style.display = 'flex';
+    updateDisplayMode();
+    startRecording();
+  }
+
+  // ── Mise à jour visuelle selon le mode ──
+  function updateDisplayMode() {
+    const isEnFr = currentMode === 'EN→FR';
+    const badge = document.getElementById('mode-badge');
+    const transText = document.getElementById('translation-text');
+    const transLabel = document.getElementById('translation-label');
+
+    badge.textContent = currentMode;
+    badge.className = 'mode-badge ' + (isEnFr ? 'badge-en' : 'badge-fr');
+    transText.className = 'translation-text ' + (isEnFr ? 'fr' : 'en');
+    transLabel.textContent = isEnFr ? 'TRADUCTION EN FRANÇAIS' : 'TRANSLATION IN ENGLISH';
+  }
+
+  // ── Enregistrement audio ──
+  function startRecording() {
+    audioChunks = [];
+    isRecording = true;
+
+    const options = { mimeType: 'audio/webm;codecs=opus' };
+    try {
+      mediaRecorder = new MediaRecorder(audioStream, options);
+    } catch {
+      mediaRecorder = new MediaRecorder(audioStream);
+    }
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        audioChunks.push(e.data);
+        resetSilenceTimer();
+      }
+    };
+
+    mediaRecorder.start(500); // collecte toutes les 500ms
+    setStatus('listening', 'Écoute en cours...');
+
+    // Envoi forcé toutes les CHUNK_INTERVAL ms (sécurité)
+    processingTimeout = setInterval(() => {
+      if (audioChunks.length > 0) sendAudio();
+    }, CHUNK_INTERVAL);
+  }
+
+  function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      if (audioChunks.length > 0) sendAudio();
+    }, SILENCE_DELAY);
+  }
+
+  // ── Envoi audio → Voxtral → Traduction ──
+  async function sendAudio() {
+    if (audioChunks.length === 0) return;
+
+    const chunks = [...audioChunks];
+    audioChunks = [];
+
+    const blob = new Blob(chunks, { type: 'audio/webm' });
+    if (blob.size < 2000) return; // trop court, probablement silence
+
+    setSpinner(true, 'Transcription...');
+
+    try {
+      // ── Étape 1 : Transcription via Voxtral ──
+      const sourceLang = currentMode === 'EN→FR' ? 'en' : 'fr';
+      const transcript = await transcribeAudio(blob, sourceLang);
+
+      if (!transcript || transcript.trim().length < 2) {
+        setSpinner(false);
+        return;
+      }
+
+      document.getElementById('original-text').textContent = transcript;
+      setSpinner(true, 'Traduction...');
+
+      // ── Étape 2 : Traduction via Mistral chat ──
+      const translated = await translateText(transcript);
+
+      if (translated) {
+        displayTranslation(transcript, translated);
+        addToHistory(transcript, translated);
+      }
+
+    } catch (err) {
+      console.error(err);
+      showError('Erreur API : ' + err.message);
+    } finally {
+      setSpinner(false);
+    }
+  }
+
+  // ── API : Transcription Voxtral ──
+  async function transcribeAudio(audioBlob, lang) {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('model', 'voxtral-mini-transcribe-2502');
+    formData.append('language', lang);
+
+    const response = await fetch('https://api.mistral.ai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || `Voxtral HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.text || '';
+  }
+
+  // ── API : Traduction Mistral Chat ──
+  async function translateText(text) {
+    const isEnFr = currentMode === 'EN→FR';
+    const systemPrompt = isEnFr
+      ? 'Tu es un traducteur professionnel anglais→français pour conférences. Traduis fidèlement et naturellement. Réponds UNIQUEMENT avec la traduction, sans explications ni guillemets.'
+      : 'You are a professional French→English conference translator. Translate faithfully and naturally. Reply ONLY with the translation, no explanations or quotes.';
+
+    const userPrompt = isEnFr
+      ? `Traduis en français : ${text}`
+      : `Translate to English: ${text}`;
+
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 400,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || `Mistral HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  }
+
+  // ── Affichage ──
+  function displayTranslation(original, translated) {
+    document.getElementById('translation-text').textContent = translated;
+    document.getElementById('original-text').textContent = original;
+  }
+
+  function addToHistory(original, translated) {
+    const history = document.getElementById('history');
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `<span>${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</span>${translated} <em style="color:#3b3b4f">— ${original}</em>`;
+    history.insertBefore(item, history.firstChild);
+
+    // Garder max 20 entrées
+    while (history.children.length > 20) {
+      history.removeChild(history.lastChild);
+    }
+  }
+
+  // ── Arrêt ──
+  function stopSession() {
+    isRecording = false;
+    clearInterval(processingTimeout);
+    clearTimeout(silenceTimer);
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(t => t.stop());
+    }
+
+    document.getElementById('display').style.display = 'none';
+    document.getElementById('config-panel').style.display = 'flex';
+    document.getElementById('api-key').value = '';
+    apiKey = '';
+
+    // Reset affichage
+    document.getElementById('translation-text').textContent = 'En attente de la parole...';
+    document.getElementById('original-text').textContent = '—';
+    document.getElementById('history').innerHTML = '';
+  }
+
+  // ── Utilitaires UI ──
+  function setStatus(state, label) {
+    const dot = document.getElementById('status-dot');
+    dot.className = 'status-dot' + (state === 'listening' ? ' listening' : '');
+    document.getElementById('status-label').textContent = label;
+  }
+
+  function setSpinner(visible, label = '') {
+    document.getElementById('spinner').style.display = visible ? 'block' : 'none';
+    document.getElementById('processing-label').textContent = visible ? label : '';
+  }
+
+  function showError(msg) {
+    const banner = document.getElementById('error-banner');
+    banner.textContent = msg;
+    banner.style.display = 'block';
+    setTimeout(() => { banner.style.display = 'none'; }, 4000);
+  }
+
+  // ── localStorage : clé API ──
+  const STORAGE_KEY = 'conf_translator_api_key';
+
+  function loadSavedKey() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      document.getElementById('api-key').value = saved;
+      document.getElementById('key-hint').style.display = 'block';
+      document.getElementById('btn-forget').style.display = 'inline-block';
+    }
+  }
+
+  function saveKey(key) {
+    localStorage.setItem(STORAGE_KEY, key);
+    document.getElementById('key-hint').style.display = 'block';
+    document.getElementById('btn-forget').style.display = 'inline-block';
+  }
+
+  function forgetKey() {
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('api-key').value = '';
+    document.getElementById('key-hint').style.display = 'none';
+    document.getElementById('btn-forget').style.display = 'none';
+  }
+
+  // ── Init ──
+  selectMode('EN→FR');
+  loadSavedKey();
+</script>
+</body>
+</html>
