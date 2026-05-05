@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traduction conférence</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260505a" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="toolbar">
+        <div class="auto-mode-banner" aria-live="polite">
+          Détection automatique anglais / français
+        </div>
+        <div class="actions">
+          <button id="startButton">Démarrer</button>
+          <button id="stopButton" class="secondary">Arrêter</button>
+          <button id="clearButton" class="secondary">Effacer</button>
+          <button id="fullscreenButton" class="secondary">Plein écran</button>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="status-row">
+          <span id="statusBadge" class="status">Prêt</span>
+          <span id="modeLabel" class="mode-label">Détection automatique active</span>
+          <span id="directionLabel" class="sample-rate">Direction: en attente</span>
+          <span id="sessionLabel" class="sample-rate">Session: default</span>
+          <span id="roleLabel" class="sample-rate">Console opérateur</span>
+          <span id="sampleRate" class="sample-rate"></span>
+          <span id="transportStats" class="sample-rate">0 paquet audio</span>
+          <span id="micLevel" class="sample-rate">Micro: --</span>
+          <span id="permissionState" class="sample-rate">Permission micro: --</span>
+          <span id="deviceState" class="sample-rate">Entrées audio: --</span>
+          <span id="audienceState" class="sample-rate">Écrans connectés: 0</span>
+        </div>
+
+        <section class="captions-card">
+          <p class="eyebrow">Traduction affichée</p>
+          <div id="translationOutput" class="translation-output">
+            Cliquez sur “Démarrer” puis autorisez le micro.
+          </div>
+        </section>
+
+        <section class="source-card">
+          <p class="eyebrow">Source en cours</p>
+          <div id="sourceOutput" class="source-output"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js?v=20260505a" defer></script>
+  </body>
+</html>

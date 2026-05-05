@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: conference-translator
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.14
+      - key: MISTRAL_TRANSCRIBE_MODEL
+        value: voxtral-mini-transcribe-realtime-2602
+      - key: MISTRAL_TRANSLATE_MODEL
+        value: mistral-small-latest
+      - key: MISTRAL_TARGET_DELAY_MS
+        value: "900"
+      - key: MISTRAL_SAMPLE_RATE
+        value: "16000"
+      - key: TRANSLATION_IDLE_FLUSH_MS
+        value: "550"
+      - key: TRANSLATION_MIN_CHARS
+        value: "4"
+      - key: MISTRAL_API_KEY
+        sync: false
